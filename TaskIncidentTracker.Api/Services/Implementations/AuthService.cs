@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TaskIncidentTracker.Api.Data;
+using TaskIncidentTracker.Api.DTOs.Auth;
 using TaskIncidentTracker.Api.Models;
 using TaskIncidentTracker.Api.Services.Interfaces;
 
@@ -9,25 +10,31 @@ namespace TaskIncidentTracker.Api.Services.Implementations
     {
         private readonly ApplicationDbContext _context;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IJwtTokenService _jwtTokenService;
 
-        public AuthService(ApplicationDbContext appDbContext, IPasswordHasher passwordHasher)
+        public AuthService(ApplicationDbContext appDbContext, IPasswordHasher passwordHasher, IJwtTokenService jwtTokenService)
         {
             _context = appDbContext;
             _passwordHasher = passwordHasher;
+            _jwtTokenService = jwtTokenService;
         }
-        public async Task<User?> LoginUser(string username, string password)
+        public async Task<(string, UserResponse?)> LoginUser(string username, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username.ToLower());
+            var normalized = username.Trim().ToLower();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == normalized);
             if (user == null || !_passwordHasher.VerifyPassword(user.PasswordHash, password))
             {
-                return null;
+                return (String.Empty, null);
             }
-            return user;
+            var userResponse = new UserResponse { Id = user.Id , Username = user.Username, Role = user.Role};
+            var token = _jwtTokenService.GenerateJwtToken(user);
+            return (token, userResponse);
         }
 
         public async Task<bool> RegisterUser(string username, string password, UserRole role)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == username))
+            var normalized = username.Trim().ToLower();
+            if (await _context.Users.AnyAsync(u => u.Username == normalized))
             {
                 return false;
             }

@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskIncidentTracker.Api.DTOs.Auth;
 using TaskIncidentTracker.Api.Services.Interfaces;
 
@@ -30,12 +32,32 @@ namespace TaskIncidentTracker.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginUserRequest request)
         {
-            var user = await _authService.LoginUser(request.Username, request.Password);
-            if (user != null)
+            var (token, userResponse) = await _authService.LoginUser(request.Username, request.Password);
+            if (userResponse != null)
             {
-                return Ok( new UserResponse { Id = user.Id, Username = user.Username, Role = user.Role });
+                return Ok( new { token, userResponse });
             }
             return Unauthorized(new { message = "Incorrect username or password." });
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> Me()
+        {
+            var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var name = User.FindFirstValue(ClaimTypes.Name);
+
+            var role = User.FindFirstValue(ClaimTypes.Role);
+
+            return Ok( new { id, name, role });
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("test")]
+        public async Task<IActionResult> Test()
+        {
+            return Ok(new { message = "You are admin" });
         }
     }
 }
