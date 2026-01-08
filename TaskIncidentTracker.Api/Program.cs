@@ -14,6 +14,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!);
 builder.Services.AddAuthentication(options =>
@@ -39,7 +40,9 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
