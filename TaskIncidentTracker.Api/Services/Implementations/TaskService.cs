@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TaskIncidentTracker.Api.Data;
 using TaskIncidentTracker.Api.DTOs.Tasks;
+using TaskIncidentTracker.Api.DTOs.Auth;
 using TaskIncidentTracker.Api.Models;
 using TaskIncidentTracker.Api.Services.Interfaces;
+using TaskIncidentTracker.Api.Mappers;
 
 namespace TaskIncidentTracker.Api.Services.Implementations
 {
@@ -12,14 +14,16 @@ namespace TaskIncidentTracker.Api.Services.Implementations
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<TaskService> _logger;
+        private readonly ITaskMapper _taskMapper;
 
-        public TaskService(ApplicationDbContext context, ILogger<TaskService> logger)
+        public TaskService(ApplicationDbContext context, ILogger<TaskService> logger, ITaskMapper taskMapper)
         {
             _context = context;
             _logger = logger;
+            _taskMapper = taskMapper;
         }
 
-        public async Task<TaskItem?> AssignTask(string managerId, TaskAssignmentRequest req)
+        public async Task<TaskResponse?> AssignTask(string managerId, TaskAssignmentRequest req)
         {
             var task = await _context.Tasks
                 .Include(t => t.AssignedTo)
@@ -45,10 +49,10 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             _logger.LogInformation(logMsg.Substring(0, logMsg.Length - 2));
-            return task;
+            return _taskMapper.ToResponse(task);
         }
 
-        public async Task<TaskItem?> ChangeTaskStatus(string managerId, TaskStatusChangeRequest req)
+        public async Task<TaskResponse?> ChangeTaskStatus(string managerId, TaskStatusChangeRequest req)
         {
             var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == req.TaskId);
             if (task == null)
@@ -59,10 +63,10 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             _logger.LogInformation($"[{DateTime.UtcNow}] User {managerId} has changed task {task.Id}'s status to {task.Status.ToString()}");
-            return task;
+            return _taskMapper.ToResponse(task);
         }
 
-        public async Task<TaskItem> CreateTask(string creatorId, TaskCreationRequest taskRequest)
+        public async Task<TaskResponse> CreateTask(string creatorId, TaskCreationRequest taskRequest)
         {
             var task = new TaskItem
             {
@@ -76,7 +80,41 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
             _logger.LogInformation($"[{DateTime.UtcNow}] User {creatorId} has created task {task.Id} - {task.Title}");
-            return task;
+            return _taskMapper.ToResponse(task);
         }
+
+        public async Task<List<TaskResponse>> GetAllTasks()
+        {
+            var tasks = await _context.Tasks
+                .Include(t => t.CreatedBy)
+                .Include(t => t.AssignedTo)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            return tasks
+                .Select(t => _taskMapper.ToResponse(t))
+                .ToList();
+        }
+
+
+        public async Task<List<TaskResponse>> GetUserTasks(string userId)
+        {
+            if (!int.TryParse(userId, out var parsedUserId))
+                return new List<TaskResponse>();
+
+
+            var tasks = await _context.Tasks
+                .Include(t => t.CreatedBy)
+                .Include(t => t.AssignedTo)
+                .Where(t => t.AssignedTo.Any(u => u.Id == parsedUserId)
+                )
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            return tasks
+                .Select(t => _taskMapper.ToResponse(t))
+                .ToList();
+        }
+
     }
 }

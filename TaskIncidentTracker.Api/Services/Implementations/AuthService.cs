@@ -40,7 +40,8 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             .Select(u => new UserResponse
             {
                 Id = u.Id,
-                Username = u.Username
+                Username = u.Username,
+                Role = u.Role
             })
             .ToListAsync();
         }

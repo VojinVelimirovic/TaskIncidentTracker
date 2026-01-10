@@ -20,6 +20,6 @@ namespace TaskIncidentTracker.Api.Models
         public int CreatedById { get; set; }
         public List<User> AssignedTo { get; set; } = new();
         public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 }
