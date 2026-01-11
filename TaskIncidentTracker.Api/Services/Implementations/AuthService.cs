@@ -30,7 +30,7 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             }
             user.Role = role;
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"[{DateTime.UtcNow}] User {adminId} has changed user {username}'s role to {role.ToString()}");
+            _logger.LogInformation($"Admin {adminId} has changed user {username}'s role to {role.ToString()}");
             return true;
         }
 
@@ -56,7 +56,7 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             }
             var userResponse = new UserResponse { Id = user.Id , Username = user.Username, Role = user.Role};
             var token = _jwtTokenService.GenerateJwtToken(user);
-            _logger.LogInformation($"[{DateTime.UtcNow}] User {user.Id} - {user.Username} has logged in.");
+            _logger.LogInformation($"User {user.Id} - {user.Username} has logged in.");
             return (token, userResponse);
         }
 

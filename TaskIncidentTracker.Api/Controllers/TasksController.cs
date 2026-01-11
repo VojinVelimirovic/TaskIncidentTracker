@@ -58,39 +58,65 @@ namespace TaskIncidentTracker.Api.Controllers
             return Ok(new { message = $"Task status changed to {req.Status.ToString()}" });
 
         }
-        [HttpGet]
-        [Authorize(Roles = "Manager, Admin")]
-        public async Task<IActionResult> GetAllTasks()
-        {
-            var tasks = await _taskService.GetAllTasks();
-            if (tasks.IsNullOrEmpty())
-            {
-                return Ok(new { message = "There are currently no tasks to be fetched." });
-            }
-            return Ok(new { message = "Fetching tasks successful.", data = tasks });
-        }
+
         [HttpGet("{id}")]
         [Authorize(Roles = "Manager, Admin")]
-        public async Task<IActionResult> GetUserTasks(string id)
+        public async Task<IActionResult> GetUserTasksPaged(string id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var tasks = await _taskService.GetUserTasks(id);
-            if (!tasks.Any())
+            var pagedTasks = await _taskService.GetUserTasks(id, page, pageSize);
+
+            if (!pagedTasks.Items.Any())
             {
-                return Ok(new { message = $"There are currently no tasks assigned to user {id} to be fetched." });
+                return Ok(new { message = $"There are currently no tasks assigned to user {id} to be fetched."});
             }
-            return Ok(new { message = $"Fetching tasks assigned to user {id} successful.", data = tasks });
+
+            return Ok(new
+            {
+                message = $"Fetching tasks assigned to user {id} successful.",
+                data = pagedTasks.Items,
+                page = pagedTasks.Page,
+                pageSize = pagedTasks.PageSize,
+                totalCount = pagedTasks.TotalCount
+            });
         }
+
         [HttpGet("my")]
         [Authorize]
-        public async Task<IActionResult> GetMyTasks()
+        public async Task<IActionResult> GetMyTasksPaged([FromQuery] int page = 1,[FromQuery] int pageSize = 20)
         {
             var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var tasks = await _taskService.GetUserTasks(id);
-            if (tasks.IsNullOrEmpty())
+            var pagedTasks = await _taskService.GetUserTasks(id, page, pageSize);
+
+            if (!pagedTasks.Items.Any())
             {
-                return Ok(new { message = $"There are currently no tasks assigned you to be fetched." });
+                return Ok(new { message = $"There are currently no tasks assigned to you to be fetched."});
             }
-            return Ok(new { message = $"Fetching tasks assigned you successful.", data = tasks });
+
+            return Ok(new
+            {
+                message = $"Fetching tasks assigned to you successful.",
+                data = pagedTasks.Items,
+                page = pagedTasks.Page,
+                pageSize = pagedTasks.PageSize,
+                totalCount = pagedTasks.TotalCount
+            });
         }
+
+
+        [HttpGet]
+        [Authorize(Roles = "Manager, Admin")]
+        public async Task<IActionResult> GetAllTasks([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var pagedTasks = await _taskService.GetAllTasks(page, pageSize);
+            return Ok(new
+            {
+                message = $"Fetching tasks successful.",
+                data = pagedTasks.Items,
+                page = pagedTasks.Page,
+                pageSize = pagedTasks.PageSize,
+                totalCount = pagedTasks.TotalCount
+            });
+        }
+
     }
 }

@@ -7,7 +7,7 @@ namespace TaskIncidentTracker.Api.DTOs.Auth
     {
         [Required, MinLength(3)]
         public string Username {  get; set; }
-        [Required, MinLength(6)]
+        [Required, MinLength(5)]
         public string Password { get; set; }
         [Required]
         public UserRole Role { get; set; }

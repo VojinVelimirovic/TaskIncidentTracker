@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using TaskIncidentTracker.Api.Mappers;
+using TaskIncidentTracker.Api.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,7 +64,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseMiddleware<ExceptionMiddleware>();
 app.MapControllers();
 
 app.Run();

@@ -7,6 +7,7 @@ using TaskIncidentTracker.Api.DTOs.Auth;
 using TaskIncidentTracker.Api.Models;
 using TaskIncidentTracker.Api.Services.Interfaces;
 using TaskIncidentTracker.Api.Mappers;
+using TaskIncidentTracker.Api.Common;
 
 namespace TaskIncidentTracker.Api.Services.Implementations
 {
@@ -32,7 +33,6 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             {
                 return null;
             }
-            var logMsg = "["+DateTime.UtcNow+"] User " + managerId+" has assigned the task " + task.Id + " to users with the following Ids: ";
             foreach (int userId in req.UserIds)
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
@@ -43,12 +43,17 @@ namespace TaskIncidentTracker.Api.Services.Implementations
                 if (!task.AssignedTo.Any(u => u.Id == userId))
                 {
                     task.AssignedTo.Add(user);
-                    logMsg += userId + ", ";
                 }
             }
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            _logger.LogInformation(logMsg.Substring(0, logMsg.Length - 2));
+            _logger.LogInformation(
+                "Manager {ManagerId} assigned task {TaskId} to users {UserIds}",
+                managerId,
+                task.Id,
+                req.UserIds
+            );
+
             return _taskMapper.ToResponse(task);
         }
 
@@ -62,7 +67,7 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             task.Status = req.Status;
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"[{DateTime.UtcNow}] User {managerId} has changed task {task.Id}'s status to {task.Status.ToString()}");
+            _logger.LogInformation($"Manager {managerId} has changed task {task.Id}'s status to {task.Status.ToString()}");
             return _taskMapper.ToResponse(task);
         }
 
@@ -79,41 +84,66 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             };
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"[{DateTime.UtcNow}] User {creatorId} has created task {task.Id} - {task.Title}");
+            _logger.LogInformation($"User {creatorId} has created task {task.Id} - {task.Title}");
             return _taskMapper.ToResponse(task);
         }
 
-        public async Task<List<TaskResponse>> GetAllTasks()
+        public async Task<PagedResult<TaskResponse>> GetAllTasks(int page, int pageSize)
         {
-            var tasks = await _context.Tasks
+            var query = _context.Tasks
                 .Include(t => t.CreatedBy)
                 .Include(t => t.AssignedTo)
-                .OrderByDescending(t => t.CreatedAt)
+                .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+
+            var tasks = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return tasks
-                .Select(t => _taskMapper.ToResponse(t))
-                .ToList();
+            return new PagedResult<TaskResponse>
+            {
+                Items = tasks.Select(t => _taskMapper.ToResponse(t)).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
-
-        public async Task<List<TaskResponse>> GetUserTasks(string userId)
+        public async Task<PagedResult<TaskResponse>> GetUserTasks(string userId, int page, int pageSize)
         {
             if (!int.TryParse(userId, out var parsedUserId))
-                return new List<TaskResponse>();
+            {
+                return new PagedResult<TaskResponse>
+                {
+                    Items = new List<TaskResponse>(),
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = 0
+                };
+            }
 
-
-            var tasks = await _context.Tasks
+            var query = _context.Tasks
                 .Include(t => t.CreatedBy)
                 .Include(t => t.AssignedTo)
-                .Where(t => t.AssignedTo.Any(u => u.Id == parsedUserId)
-                )
-                .OrderByDescending(t => t.CreatedAt)
+                .Where(t => t.AssignedTo.Any(u => u.Id == parsedUserId));
+
+            var totalCount = await query.CountAsync();
+
+            var tasks = await query
+                .OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return tasks
-                .Select(t => _taskMapper.ToResponse(t))
-                .ToList();
+            return new PagedResult<TaskResponse>
+            {
+                Items = tasks.Select(t => _taskMapper.ToResponse(t)).ToList(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
     }
