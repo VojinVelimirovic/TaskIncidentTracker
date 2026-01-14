@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.Linq.Dynamic.Core.Tokenizer;
 using System.Security.Claims;
 using TaskIncidentTracker.Api.DTOs.Auth;
 using TaskIncidentTracker.Api.Models;
@@ -22,10 +24,10 @@ namespace TaskIncidentTracker.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterUserRequest request)
         {
-            var result = await _authService.RegisterUser(request.Username, request.Password);
-            if (result)
+            var token = await _authService.RegisterUser(request.Username, request.Password);
+            if (!token.IsNullOrEmpty())
             {
-                return Ok(new { message = "Registration successful." });   
+                return Ok(new {accessToken = token, message = "Registration successful." });   
             }
             return Conflict( new { message = "Username taken." });
         }

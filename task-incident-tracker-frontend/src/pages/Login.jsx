@@ -17,7 +17,7 @@ export default function Login() {
     try {
       const res = await login(username, password);
       saveToken(res.accessToken);
-      navigate("/");
+      navigate("/create-task");
     } catch (err) {
       setError(err.message);
     }

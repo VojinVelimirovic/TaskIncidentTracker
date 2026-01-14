@@ -5,7 +5,7 @@ namespace TaskIncidentTracker.Api.Services.Interfaces
 {
     public interface IAuthService
     {
-        Task<bool> RegisterUser(string username, string password);
+        Task<string> RegisterUser(string username, string password);
         Task<(string, UserResponse?)> LoginUser(string username, string password);
         Task<bool> ChangeUserRole(string adminId, string username, UserRole role);
         Task<List<UserResponse>> GetAllUsers();

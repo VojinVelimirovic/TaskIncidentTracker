@@ -24,6 +24,7 @@ namespace TaskIncidentTracker.Api.Controllers
         public async Task<IActionResult> Create(TaskCreationRequest task)
         {
             var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            Console.WriteLine($"UserId from token: {id}");
             var createdTask = await _taskService.CreateTask(id, task);
             if (createdTask == null)
             {

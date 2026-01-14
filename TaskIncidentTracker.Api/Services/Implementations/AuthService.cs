@@ -60,19 +60,20 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             return (token, userResponse);
         }
 
-        public async Task<bool> RegisterUser(string username, string password)
+        public async Task<string> RegisterUser(string username, string password)
         {
             var normalized = username.Trim().ToLower();
             if (await _context.Users.AnyAsync(u => u.Username == normalized))
             {
-                return false;
+                return "";
             }
 
-            var user = new User { Username = username.Trim().ToLower(), PasswordHash = _passwordHasher.HashPassword(password), CreatedAt = DateTime.UtcNow };
+            var user = new User { Username = username.Trim().ToLower(), PasswordHash = _passwordHasher.HashPassword(password), CreatedAt = DateTime.UtcNow, Role = UserRole.User };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
-            return true;
+            var token = _jwtTokenService.GenerateJwtToken(user);
+            _logger.LogInformation($"User {user.Id} - {user.Username} has been registered.");
+            return token;
         }
     }
 }

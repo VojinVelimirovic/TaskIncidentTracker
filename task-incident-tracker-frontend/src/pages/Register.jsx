@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/common/Button";
 import { register } from "../api/auth";
+import { saveToken } from "../utils/authStorage";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -14,8 +15,9 @@ export default function Register() {
     setError(null);
 
     try {
-      await register(username, password);
-      navigate("/login");
+      const res = await register(username, password);
+      saveToken(res.accessToken);
+      navigate("/create-task");
     } catch (err) {
       setError(err.message);
     }

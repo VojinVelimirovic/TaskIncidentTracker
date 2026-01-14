@@ -85,7 +85,11 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             _context.Tasks.Add(task);
             await _context.SaveChangesAsync();
             _logger.LogInformation($"User {creatorId} has created task {task.Id} - {task.Title}");
-            return _taskMapper.ToResponse(task);
+            var createdTask = await _context.Tasks
+            .Include(t => t.CreatedBy)
+            .Include(t => t.AssignedTo)
+            .FirstOrDefaultAsync(t => t.Id == task.Id);
+            return _taskMapper.ToResponse(createdTask!);
         }
 
         public async Task<PagedResult<TaskResponse>> GetAllTasks(int page, int pageSize)
