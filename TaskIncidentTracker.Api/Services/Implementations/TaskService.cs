@@ -28,33 +28,38 @@ namespace TaskIncidentTracker.Api.Services.Implementations
         {
             var task = await _context.Tasks
                 .Include(t => t.AssignedTo)
+                .Include(t => t.CreatedBy)
                 .FirstOrDefaultAsync(t => t.Id == req.TaskId);
+
             if (task == null)
             {
                 return null;
             }
+            task.AssignedTo.Clear();
             foreach (int userId in req.UserIds)
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-                if (user == null)
-                {
-                    continue;
-                }
-                if (!task.AssignedTo.Any(u => u.Id == userId))
+                if (user != null)
                 {
                     task.AssignedTo.Add(user);
                 }
             }
+
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
             _logger.LogInformation(
                 "Manager {ManagerId} assigned task {TaskId} to users {UserIds}",
                 managerId,
                 task.Id,
                 req.UserIds
             );
+            var updatedTask = await _context.Tasks
+                .Include(t => t.CreatedBy)
+                .Include(t => t.AssignedTo)
+                .FirstOrDefaultAsync(t => t.Id == task.Id);
 
-            return _taskMapper.ToResponse(task);
+            return _taskMapper.ToResponse(updatedTask!);
         }
 
         public async Task<TaskResponse?> ChangeTaskStatus(string managerId, TaskStatusChangeRequest req)
@@ -68,7 +73,13 @@ namespace TaskIncidentTracker.Api.Services.Implementations
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             _logger.LogInformation($"Manager {managerId} has changed task {task.Id}'s status to {task.Status.ToString()}");
-            return _taskMapper.ToResponse(task);
+
+            var updatedTask = await _context.Tasks
+                .Include(t => t.CreatedBy)
+                .Include(t => t.AssignedTo)
+                .FirstOrDefaultAsync(t => t.Id == task.Id);
+
+            return _taskMapper.ToResponse(updatedTask!);
         }
 
         public async Task<TaskResponse> CreateTask(string creatorId, TaskCreationRequest taskRequest)

@@ -3,7 +3,9 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import CreateTask from "../pages/CreateTask";
 import MyTasks from "../pages/MyTasks";
+import AllTasks from "../pages/AllTasks";
 import ProtectedRoute from "./ProtectedRoute";
+import ManagerRoute from "./ManagerRoute";
 
 export default function AppRouter() {
   return (
@@ -15,6 +17,15 @@ export default function AppRouter() {
         <Route path="/register" element={<Register />} />
 
         <Route 
+          path="/create-task" 
+          element={
+            <ProtectedRoute>
+              <CreateTask />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
           path="/my-tasks" 
           element={
             <ProtectedRoute>
@@ -24,11 +35,11 @@ export default function AppRouter() {
         />
 
         <Route 
-          path="/create-task" 
+          path="/all-tasks" 
           element={
-            <ProtectedRoute>
-              <CreateTask />
-            </ProtectedRoute>
+            <ManagerRoute>
+              <AllTasks />
+            </ManagerRoute>
           } 
         />
       </Routes>
