@@ -95,7 +95,9 @@ cd TaskIncidentTracker
    cp .env.example .env
    ```
 
-2. Edit `.env` and update with your Supabase connection string:
+   Use copy instead of cp if you're on windows.
+
+2. Edit `.env` and update the Id= portion of your DATABASE_URL with your Supabase connection string from earlier:
 
    ```
    JWT_SECRET=ThisIsASuperSecretKeyThatIsAtLeast32Chars!
@@ -112,6 +114,7 @@ cd TaskIncidentTracker
    cp .env.example .env
    cd ..
    ```
+   Use copy instead of cp if you're on windows.
 
 ### 4. Run the Application
 

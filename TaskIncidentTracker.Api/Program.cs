@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using TaskIncidentTracker.Api.Mappers;
 using TaskIncidentTracker.Api.Common;
+using Microsoft.AspNetCore.Mvc;
 
 var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
 if (File.Exists(envPath))
@@ -65,6 +66,21 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value.Errors.Count > 0)
+                .Select(e => new
+                {
+                    field = e.Key,
+                    message = e.Value.Errors.First().ErrorMessage
+                });
+
+            return new BadRequestObjectResult(new { errors });
+        };
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
